@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="stylecss.css">
+	<title></title>
+</head>
+<body>
+
+</body>
+</html>
+
+<script type="text/javascript">
+	const canvasSize = {
+  width: 700,
+  height: 400
+};
+
+let fr = 60;
+
+const createShip = () => {
+  let vibratingAngle = 0;
+
+  const draw = (controlDirection, vibratingShip) => {
+    push();
+    translate(canvasSize.width / 2, canvasSize.height / 2);
+    rotate(controlDirection.heading());
+    noStroke();
+    const vibratingResult = sin(vibratingAngle) * vibratingShip;
+    triangle(
+      -15 + vibratingResult,
+      0,
+      15 + vibratingResult,
+      -9,
+      15 + vibratingResult,
+      9
+    );
+    // rect(0, 0, 20, 20);
+    fill(153, 10, 255, 255);
+
+    pop();
+  };
+
+  const update = () => {
+    vibratingAngle += 0.2;
+  };
+
+  return {
+    draw,
+    update
+  };
+};
+
+let ship;
+
+const createStar = () => {
+  let pos = createVector(
+    random(-canvasSize.width, canvasSize.width * 2),
+    random(-canvasSize.height, canvasSize.height * 2)
+  );
+  let vel = createVector();
+
+  let acc = createVector();
+
+  let mass = Math.random(1, 5);
+
+  const draw = (controlDirection, width) => {
+    push();
+    translate(pos.x + width / 2, pos.y + 1.5);
+    rotate(controlDirection.heading());
+    fill(153, 50, 255, 170);
+    noStroke();
+    rect(-(width / 2), -1.5, width, 3);
+    pop();
+  };
+
+  const update = () => {
+    vel.add(acc);
+    pos.add(vel);
+  };
+
+  const applyForce = (force) => {
+    acc = force.copy();
+  };
+
+  const friction = () => {
+    vel.div(3);
+  };
+
+  const randomExcludeWidth = (x) => {
+    const rand = random(-1000 * x, -1000 * x + 1000);
+
+    return rand;
+  };
+
+  const randomExcludeHeight = (y) => {
+    const rand = random(-700 * y, -700 * y + 700);
+
+    return rand;
+  };
+
+  const checkOutsideAndReposition = (direction) => {
+    if (
+      pos.x < -canvasSize.width ||
+      pos.x > canvasSize.width * 2 ||
+      pos.y < -canvasSize.height ||
+      pos.y > canvasSize.height * 2
+    ) {
+      const newX = randomExcludeWidth(direction.x);
+      const newY = randomExcludeHeight(direction.y);
+      pos = createVector(newX, newY);
+    }
+  };
+
+  return {
+    draw,
+    update,
+    applyForce,
+    checkOutsideAndReposition,
+    friction
+  };
+};
+
+let stars = [];
+let origin;
+
+function setup() {
+  createCanvas(canvasSize.width, canvasSize.height);
+  colorMode(HSB, 255, 255, 255, 255);
+  stars = [...Array(400)].map(() => createStar());
+  origin = createVector(canvasSize.width / 2, canvasSize.height / 2);
+  frameRate(fr);
+  ship = createShip();
+}
+
+function draw() {
+  const controlDirection = createVector(mouseX, mouseY)
+    .sub(origin)
+    .mult(-1)
+    .div(2);
+
+  console.log("controlDirection", controlDirection.mag());
+
+  const width = constrain(0.309 * controlDirection.mag() + 1, 3, 100);
+
+  const opacity = constrain(
+    -2.214 * (controlDirection.mag() - 185) + 30,
+    30,
+    120
+  );
+
+  background(0, 0, 0, opacity);
+
+  const controlForce = createVector(
+    (controlDirection.x * 10 * deltaTime) / 1000,
+    (controlDirection.y * 10 * deltaTime) / 1000
+  );
+
+  const vibratingShip = constrain(
+    0.03225 * (controlDirection.mag() - 185) + 5,
+    0,
+    3
+  );
+
+  stars.forEach((star) => {
+    star.applyForce(controlForce);
+    star.update();
+    star.draw(controlDirection, width);
+    star.checkOutsideAndReposition(controlDirection.normalize());
+    star.friction();
+  });
+
+  ship.update();
+  ship.draw(controlDirection, vibratingShip);
+}
+
+	
+</script>
